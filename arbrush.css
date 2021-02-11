@@ -1,0 +1,27 @@
+body {
+  font-family: Courier New, Courier, monospace;
+  background-color: #666;
+}
+
+#view {
+  margin: 40px;
+}
+
+#mousePosition {
+  position: absolute;
+  bottom: 0;
+  left:0;
+  background-color: #333;
+  color: #fff;
+}
+
+#controls {
+  display: inline-block;
+  position: fixed;
+  width: 160px;
+  height: 400px;
+  margin: 40px;
+  padding: 20px;
+  background-color: #333;
+  color: #fff;
+}
