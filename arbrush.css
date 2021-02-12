@@ -10,9 +10,17 @@ body {
 #mousePosition {
   position: absolute;
   bottom: 0;
-  left:0;
+  left: 0;
   background-color: #333;
   color: #fff;
+}
+
+#brushtipIndicator {
+  position: absolute;
+  background-color: rgba(1, 0, 0, 0.55);
+  height: 20px;
+  width: 20px;
+  border-radius: 10px;
 }
 
 #controls {
