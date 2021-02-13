@@ -42,16 +42,6 @@ const blot = (cantext, e, x, y) => {
   cantext.putImageData(id, x, y);
 };
 
-const padPrint = (num, padMin) => {
-  const strNum = String(num);
-  diff = padMin - strNum.length;
-  return '&nbsp'.repeat(diff) + strNum;
-};
-
-const handleCanvasPointerMove = (x, y) => {
-  $('#mousePosition').innerHTML = `x: ${padPrint(x, 5)}; y: ${padPrint(y, 5)}`;
-};
-
 const mouseInCanvas = (evt, rect) => {
   if (
     evt.clientX > rect.left &&
@@ -65,39 +55,35 @@ const mouseInCanvas = (evt, rect) => {
   return false;
 };
 
-const updateBrushtipIndicatorSize = (diameter, pointerX, pointerY) => {
-  $('#brushtipIndicator').style.width = `${diameter}px`;
-  $('#brushtipIndicator').style.height = `${diameter}px`;
-  $('#brushtipIndicator').style.left = `${pointerX - (diameter / 2)}px`;
-  $('#brushtipIndicator').style.top = `${pointerY - (diameter / 2)}px`;
-  $('#brushtipIndicator').style['border-radius'] = `${(diameter / 2)}px`;
-}
-
-const updateBrushtipIndicatorPosition = (mouseInCanvasNow, pointerX, pointerY) => {
-  if (mouseInCanvasNow) {
-    const diameter = Number(
-      window.getComputedStyle($('#brushtipIndicator')).width.slice(0, -2)
-    );
-    $('#brushtipIndicator').style.display = 'block';
-    $('#brushtipIndicator').style.left = `${pointerX - (diameter / 2)}px`;
-    $('#brushtipIndicator').style.top = `${pointerY - (diameter / 2)}px`;
-    $('#brushtipIndicator').style['border-radius'] = `${(diameter / 2)}px`;
-  } else {
-    $('#brushtipIndicator').style.display = 'none';
-  }
+const padPrint = (num, padMin) => {
+  const strNum = String(num);
+  diff = padMin - strNum.length;
+  return '&nbsp'.repeat(diff) + strNum;
 };
 
+const updatePointerPositionReadout = (x, y) => {
+  $('#pointerPositionReadout').innerHTML = `x: ${padPrint(x, 5)}; y: ${padPrint(y, 5)}`;
+};
+
+const brushtipIndicatorDataURI = (diameter) => {
+  return `url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='${diameter}'%20height='${diameter}'%3E%3Ccircle%20cx='${diameter/2}'%20cy='${diameter/2}'%20r='${diameter/2}'%20fill='red'/%3E%3C/svg%3E") ${diameter/2} ${diameter/2}, crosshair`;
+};
+
+const updateBrushtipIndicatorSize = () => {
+  $('body').style.cursor = brushtipIndicatorDataURI(settings.brushtipSize);
+}
+
 const handlePointerMove = (evt) => {
-  const rect = $('#view').getBoundingClientRect();
-  const mouseInCanvasNow = mouseInCanvas(evt, rect);
-  updateBrushtipIndicatorPosition(mouseInCanvasNow, evt.clientX, evt.clientY);
+  const mouseInCanvasNow = mouseInCanvas(evt, $('#view').getBoundingClientRect());
   if (mouseInCanvasNow) {
-    handleCanvasPointerMove(
+    updateBrushtipIndicatorSize();
+    updatePointerPositionReadout(
       evt.clientX - rect.left,
       evt.clientY - rect.top
     );
   } else {
-    $('#mousePosition').innerHTML = null;
+    $('body').style.cursor = `crosshair`;
+    $('#pointerPositionReadout').innerHTML = null;
   }
 };
 
@@ -109,7 +95,6 @@ window.onload = () => {
   $('body').addEventListener('pointermove', handlePointerMove, true);
   $('#brushtipSize').addEventListener('change', (evt) => {
     settings.brushtipSize = $('#brushtipSize').value;
-    updateBrushtipIndicatorSize(settings.brushtipSize, evt.clientX, evt.clientY);
   }, false);
   initializeView();
 };
