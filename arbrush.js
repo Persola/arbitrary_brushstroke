@@ -3,10 +3,21 @@ const $$ = document.querySelectorAll.bind(document);
 
 const VIEW_WIDTH = 600;
 const VIEW_HEIGHT = 600;
+const RED_PIXEL = [255, 0, 0, 255];
 
 const settings = {
   brushtipSize: 10
 };
+
+const brushState = {
+  inStroke: false,
+  strokeStartX: NaN,
+  strokeStartY: NaN,
+  strokePrevX: NaN,
+  strokePrevY: NaN,
+};
+
+let cantext = null;
 
 // KICKOFF
 
@@ -15,31 +26,13 @@ const settings = {
 const initializeView = () => {
   $('#view').width = VIEW_WIDTH;
   $('#view').height = VIEW_HEIGHT;
-  const cantext = $('#view').getContext('2d', {
+  cantext = $('#view').getContext('2d', {
     alpha: true,
     desynchronized: true, // guessing
     willReadFrequently: true // guessing
   });
   cantext.fillStyle = 'white';
   cantext.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
-  $('#view').onclick = (e) => {
-    const rect = e.target.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    blot(cantext, e, x, y);
-  };
-};
-
-const blot = (cantext, e, x, y) => {
-  console.log(x, y);
-  const id = new ImageData(
-    new Uint8ClampedArray([
-      255, 0, 0, 255
-    ]),
-    1,
-    1
-  );
-  cantext.putImageData(id, x, y);
 };
 
 const mouseInCanvas = (evt, rect) => {
@@ -74,27 +67,106 @@ const updateBrushtipIndicatorSize = () => {
 }
 
 const handlePointerMove = (evt) => {
-  const mouseInCanvasNow = mouseInCanvas(evt, $('#view').getBoundingClientRect());
+  const rect = $('#view').getBoundingClientRect();
+  const mouseInCanvasNow = mouseInCanvas(evt, rect);
   if (mouseInCanvasNow) {
     updateBrushtipIndicatorSize();
-    updatePointerPositionReadout(
-      evt.clientX - rect.left,
-      evt.clientY - rect.top
-    );
+    pointerCoords = coordsInView(evt.clientX, evt.clientY);
+    updatePointerPositionReadout(pointerCoords.x, pointerCoords.y);
+    if (brushState.inStroke) {
+      const strokePrev = {
+        x: brushState.strokePrevX,
+        y: brushState.strokePrevY
+      }
+      Object.assign(
+        brushState,
+        {
+          strokePrevX: pointerCoords.x,
+          strokePrevY: pointerCoords.y
+        }
+      )
+      drawStrokeSegment(strokePrev, pointerCoords.x, pointerCoords.y);
+    }
   } else {
     $('body').style.cursor = `crosshair`;
     $('#pointerPositionReadout').innerHTML = null;
   }
 };
 
+const pointerInitStroke = (evt) => {
+  const coords = coordsInView(evt.clientX, evt.clientY);
+  initStroke(coords.x, coords.y);
+  blot(coords.x, coords.y);
+};
+
+const drawStrokeSegment = (lastCoords, currentCoordsX, currentCoordsY) => {
+  blot(currentCoordsX, currentCoordsY)
+};
+
+const coordsInView = (screenX, screenY) => {
+  const viewsBounds = $('#view').getBoundingClientRect();
+  return {
+    x: screenX - viewsBounds.left,
+    y: screenY - viewsBounds.top
+  };
+};
+
+const initStroke = (x, y) => {
+  Object.assign(
+    brushState,
+    {
+      inStroke: true,
+      strokeStartX: x,
+      strokeStartY: y,
+      strokePrevX: x,
+      strokePrevY: y
+    }
+  )
+};
+
+const arrayRepeat = (baseArray, times) => {
+  const totalLength = baseArray.length * times;
+  const repeated = Array(totalLength);
+
+  for (i = 0; i < totalLength; i++) {
+    repeated[i] = baseArray[i % baseArray.length];
+  }
+  
+  return repeated;
+};
+
+const blot = (blotCenterX, blotCenterY) => {
+  const diameter = settings.brushtipSize;
+  const id = new ImageData(
+    new Uint8ClampedArray(
+      arrayRepeat(RED_PIXEL, diameter**2)
+    ),
+    diameter,
+    diameter
+  );
+  cantext.putImageData(id, blotCenterX - (diameter/2), blotCenterY - (diameter/2));
+};
+
+const pointerEndStroke = () => {
+  Object.assign(
+    brushState,
+    {
+      inStroke: false,
+      strokeStartX: NaN,
+      strokeStartY: NaN,
+      strokePrevX: NaN,
+      strokePrevY: NaN
+    }
+  )
+};
+
 window.onload = () => {
-  const cantext = $('#view').getContext('2d');
-  // $('#view').addEventListener("pointerdown", handleStart, false);
-  // $('#view').addEventListener("pointerup", handleEnd, false);
-  // $('#view').addEventListener("pointercancel", handleCancel, false);
   $('body').addEventListener('pointermove', handlePointerMove, true);
   $('#brushtipSize').addEventListener('change', (evt) => {
     settings.brushtipSize = $('#brushtipSize').value;
   }, false);
   initializeView();
+  $('#view').addEventListener('pointerdown', pointerInitStroke, true);
+  $('body').addEventListener('pointerup', pointerEndStroke, true);
+  $('body').addEventListener('pointercancel', pointerEndStroke, true);
 };
