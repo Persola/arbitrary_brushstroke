@@ -5,7 +5,11 @@ body {
 }
 
 #view {
-  margin: 40px;
+  margin: 0.5px; /* part of canvas half pixel off bug fix */
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 #pointerPositionReadout {
@@ -21,7 +25,7 @@ body {
   position: fixed;
   width: 160px;
   height: 400px;
-  margin: 40px;
+  margin: 10px;
   padding: 20px;
   background-color: #333;
   color: #fff;

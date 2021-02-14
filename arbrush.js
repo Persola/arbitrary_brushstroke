@@ -4,9 +4,13 @@ const $$ = document.querySelectorAll.bind(document);
 const VIEW_WIDTH = 600;
 const VIEW_HEIGHT = 600;
 const RED_PIXEL = [255, 0, 0, 255];
+const READOUT_DIGIT_TRUNC = 6;
+
+const PROBABLY_GECKO = navigator.userAgent.includes('Gecko') &&
+  !navigator.userAgent.includes('like Gecko');
 
 const settings = {
-  brushtipSize: 10
+  brushtipSize: 1
 };
 
 const brushState = {
@@ -31,8 +35,21 @@ const initializeView = () => {
     desynchronized: true, // guessing
     willReadFrequently: true // guessing
   });
-  cantext.fillStyle = 'white';
-  cantext.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
+  cantext.imageSmoothingEnabled = false;
+  fillCheckerboard(cantext);
+};
+
+const fillCheckerboard = (cantext) => {
+  for (let x = 0; x < VIEW_WIDTH; x++) {
+    for (let y = 0; y < VIEW_WIDTH; y++) {
+      if ((x + y) % 2 === 0) {
+        cantext.fillStyle = '#fff';
+      } else {
+        cantext.fillStyle = '#eee';
+      }
+      cantext.fillRect(x, y, 1, 1);
+    }
+  }
 };
 
 const mouseInCanvas = (evt, rect) => {
@@ -48,18 +65,23 @@ const mouseInCanvas = (evt, rect) => {
   return false;
 };
 
-const padPrint = (num, padMin) => {
+const padPrint = (num, maxDigits) => {
   const strNum = String(num);
-  diff = padMin - strNum.length;
-  return '&nbsp'.repeat(diff) + strNum;
+  if (strNum.length > maxDigits) {
+    return strNum.slice(0, maxDigits);
+  } else {
+    const diff = maxDigits - strNum.length;
+    return '&nbsp'.repeat(diff) + strNum;
+  }
 };
 
 const updatePointerPositionReadout = (x, y) => {
-  $('#pointerPositionReadout').innerHTML = `x: ${padPrint(x, 5)}; y: ${padPrint(y, 5)}`;
+  $('#pointerPositionReadout').innerHTML = `x: ${padPrint(x, READOUT_DIGIT_TRUNC)}; y: ${padPrint(y, READOUT_DIGIT_TRUNC)}`;
 };
 
-const brushtipIndicatorDataURI = (diameter) => {
-  return `url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='${diameter}'%20height='${diameter}'%3E%3Ccircle%20cx='${diameter/2}'%20cy='${diameter/2}'%20r='${diameter/2}'%20fill='red'/%3E%3C/svg%3E") ${diameter/2} ${diameter/2}, crosshair`;
+const brushtipIndicatorDataURI = (radius) => {
+  const cursorOffset = PROBABLY_GECKO ? radius : radius - 1;
+  return `url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='${radius * 2 + 1}'%20height='${radius * 2 + 1}'%3E%3Ccircle%20cx='50%'%20cy='50%'%20r='50%'%20fill='blue'/%3E%3C/svg%3E") ${cursorOffset} ${cursorOffset}, crosshair`;
 };
 
 const updateBrushtipIndicatorSize = () => {
@@ -88,7 +110,7 @@ const handlePointerMove = (evt) => {
       drawStrokeSegment(strokePrev, pointerCoords.x, pointerCoords.y);
     }
   } else {
-    $('body').style.cursor = `crosshair`;
+    $('body').style.cursor = 'crosshair';
     $('#pointerPositionReadout').innerHTML = null;
   }
 };
@@ -106,8 +128,8 @@ const drawStrokeSegment = (lastCoords, currentCoordsX, currentCoordsY) => {
 const coordsInView = (screenX, screenY) => {
   const viewsBounds = $('#view').getBoundingClientRect();
   return {
-    x: screenX - viewsBounds.left,
-    y: screenY - viewsBounds.top
+    x: screenX - viewsBounds.left - 0.5, /* part of canvas half pixel off bug fix */
+    y: screenY - viewsBounds.top - 0.5 /* part of canvas half pixel off bug fix */
   };
 };
 
@@ -128,7 +150,7 @@ const arrayRepeat = (baseArray, times) => {
   const totalLength = baseArray.length * times;
   const repeated = Array(totalLength);
 
-  for (i = 0; i < totalLength; i++) {
+  for (let i = 0; i < totalLength; i++) {
     repeated[i] = baseArray[i % baseArray.length];
   }
   
@@ -136,15 +158,17 @@ const arrayRepeat = (baseArray, times) => {
 };
 
 const blot = (blotCenterX, blotCenterY) => {
-  const diameter = settings.brushtipSize;
-  const id = new ImageData(
+  const radius = settings.brushtipSize;
+  const imdat = new ImageData(
     new Uint8ClampedArray(
-      arrayRepeat(RED_PIXEL, diameter**2)
+      arrayRepeat(RED_PIXEL, (radius * 2 + 1)**2)
     ),
-    diameter,
-    diameter
+    radius * 2 + 1,
+    radius * 2 + 1
   );
-  cantext.putImageData(id, blotCenterX - (diameter/2), blotCenterY - (diameter/2));
+  const a = Math.ceil(blotCenterX - radius);
+  const b = Math.ceil(blotCenterY - radius);
+  cantext.putImageData(imdat, a, b);
 };
 
 const pointerEndStroke = () => {
@@ -162,8 +186,9 @@ const pointerEndStroke = () => {
 
 window.onload = () => {
   $('body').addEventListener('pointermove', handlePointerMove, true);
+  settings.brushtipSize = Number($('#brushtipSize').value);
   $('#brushtipSize').addEventListener('change', (evt) => {
-    settings.brushtipSize = $('#brushtipSize').value;
+    settings.brushtipSize = Number($('#brushtipSize').value);
   }, false);
   initializeView();
   $('#view').addEventListener('pointerdown', pointerInitStroke, true);
