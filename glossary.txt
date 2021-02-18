@@ -1,0 +1,20 @@
+'stroke': equivalent to a brushstroke, the alteration of the canvas element's
+    contents over the course of one depression of the mouse button (or
+    equivalent). The under lying structure of a stroke is a sequence of points
+    with a line segment connecting each neighboring (in time) pair.
+'stroke point': a point in the canvas space the pointer occupies at some moment
+    during a stroke. A stroke always starts and ends with a point (perhaps the
+    same). Has x and y coordinates.
+'stroke segment': a line segment connecting two stroke points, thereby
+    representing a subpath of a stroke. Defined by their start and end points.
+    Has an angle.
+'angle': an absolute angle measured on the unit circle in radians, except the
+    unit circle is flipped vertically because the y-axis is flipped in the
+    canvas element.
+'stroke skeleton': points, segments, and any other geometric structure derived from
+    them that are not intended to be rendered during normal usage and which
+    provide the structure of a stroke.
+'stroke bone': an element of the skeleton
+'wings': bones consisting of two small line segments perpendicular to the
+    segment angles (or point angles, themselves derived from segment angles)
+'wingtip': the end of a wing which is not on its segment
