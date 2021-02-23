@@ -1,8 +1,8 @@
 import './style.css';
 
 import $ from './js/utility/querySelector';
-import coordsInView from './js/utility/coordsInView'
-import mouseInCanvas from './js/utility/mouseInCanvas'
+import coordsWithinPainting from './js/utility/coordsWithinPainting'
+import mouseInPainting from './js/utility/mouseInPainting'
 import settings from './js/state/settings'
 
 import radiansArithmeticMean from './js/trig/radiansArithmeticMean'
@@ -18,28 +18,28 @@ import fillCheckerboard from './js/render/fillCheckerboard'
 
 import BRUSH_STATE_DEFAULTS from './js/state/brushStateDefaults'
 
-const VIEW_WIDTH = 600;
-const VIEW_HEIGHT = 600;
+const PAINTING_WIDTH = 600;
+const PAINTING_HEIGHT = 600;
 
 const brushState = Object.assign({}, BRUSH_STATE_DEFAULTS);
 
 let cantext = null;
 
-const initializeView = () => {
-  $('#view').width = VIEW_WIDTH;
-  $('#view').height = VIEW_HEIGHT;
-  cantext = $('#view').getContext('2d', {
+const initializePainting = () => {
+  $('#painting').width = PAINTING_WIDTH;
+  $('#painting').height = PAINTING_HEIGHT;
+  cantext = $('#painting').getContext('2d', {
     alpha: true,
     desynchronized: true, // guessing
     willReadFrequently: true // guessing
   });
   cantext.imageSmoothingEnabled = false;
-  fillCheckerboard(cantext, VIEW_WIDTH, VIEW_HEIGHT);
+  fillCheckerboard(cantext, PAINTING_WIDTH, PAINTING_HEIGHT);
   cantext.fillStyle = 'green';
 };
 
 const initStroke = (evt) => {
-  const coords = coordsInView(evt.clientX, evt.clientY);
+  const coords = coordsWithinPainting(evt.clientX, evt.clientY);
   Object.assign(
     brushState,
     {
@@ -56,19 +56,18 @@ const initStroke = (evt) => {
 };
 
 const handlePointerMove = (evt) => {
-  const rect = $('#view').getBoundingClientRect();
-  const mouseInCanvasNow = mouseInCanvas(evt, rect);
-  if (mouseInCanvasNow) {
+  const paintingBounds = $('#painting').getBoundingClientRect();
+  if (mouseInPainting(evt, paintingBounds)) {
     updateBrushtipIndicatorSize(settings.brushtipSize);
-    const thisSegmentEndpoint = coordsInView(evt.clientX, evt.clientY);
-    updatePointerPositionReadout(thisSegmentEndpoint);
+    const thisPointCoords = coordsWithinPainting(evt.clientX, evt.clientY);
+    updatePointerPositionReadout(thisPointCoords);
     if (brushState.inStroke) {
       brushState.strokePointCount += 1;
       /* With the first point being set during stroke initialization, at this
          point strokePointCount should be 2 at minimum, so there should exist
          a segment before this point, so we can render it without a check. */
-      blot(cantext, thisSegmentEndpoint.x, thisSegmentEndpoint.y, 2);
-      renderSegment(thisSegmentEndpoint);
+      renderSegment(thisPointCoords);
+      blot(cantext, thisPointCoords.x, thisPointCoords.y, 2);
     }
   } else {
     $('body').style.cursor = 'crosshair';
@@ -76,48 +75,48 @@ const handlePointerMove = (evt) => {
   }
 };
 
-const renderSegment = (thisSegmentEndpoint) => {
-  const thisSegmentStartPoint = {
+const renderSegment = (thisPoint) => {
+  const prevPoint = {
     x: brushState.prevPointX,
     y: brushState.prevPointY
   };
 
-  const thisSegmentWingAngles = segmentWingAngles(
-    thisSegmentStartPoint,
-    thisSegmentEndpoint
+  const segmentEndingAtPrevPointWingAngle = segmentWingAngles(
+    prevPoint,
+    thisPoint
   );
 
-  let prevSegmentWingAngles;
+  let segmentEndingAtPrevPointWingAngles;
   let prevPointWingAngles;
   if (brushState.strokePointCount > 2) {
-    prevSegmentWingAngles = {
-      left: brushState.prevSegmentLeftWingAngle,
-      right: brushState.prevSegmentRightWingAngle
+    segmentEndingAtPrevPointWingAngles = {
+      left: brushState.segmentEndingAtPrevPointLeftWingAngle,
+      right: brushState.segmentEndingAtPrevPointRightWingAngle
     };
     prevPointWingAngles = {
       left: brushState.prevPointLeftWingAngle,
       right: brushState.prevPointRightWingAngle
     };
   } else {
-    // don't set prevSegmentWingAngles
-    prevPointWingAngles = thisSegmentWingAngles;
+    // don't set segmentEndingAtPrevPointWingAngles
+    prevPointWingAngles = segmentEndingAtPrevPointWingAngle;
   }
 
   let thisPointWingAngles;
   if (brushState.strokePointCount > 2) {
     thisPointWingAngles = {
       left: radiansArithmeticMean(
-        prevSegmentWingAngles.left,
-        thisSegmentWingAngles.left
+        segmentEndingAtPrevPointWingAngles.left,
+        segmentEndingAtPrevPointWingAngle.left
       ),
       right: radiansArithmeticMean(
-        prevSegmentWingAngles.right,
-        thisSegmentWingAngles.right
+        segmentEndingAtPrevPointWingAngles.right,
+        segmentEndingAtPrevPointWingAngle.right
       )
     };
   } else { // second stroke point, first stroke segment, so no earlier segment angles
-    // don't use prevSegmentWingAngles
-    thisPointWingAngles = thisSegmentWingAngles;
+    // don't use segmentEndingAtPrevPointWingAngles
+    thisPointWingAngles = segmentEndingAtPrevPointWingAngle;
   }
 
   const thisPointWingtipPos = relativeWingtipPositions(
@@ -132,38 +131,40 @@ const renderSegment = (thisSegmentEndpoint) => {
   Object.assign(
     brushState,
     {
-      prevPointX: thisSegmentEndpoint.x,
-      prevPointY: thisSegmentEndpoint.y,
-      prevSegmentLeftWingAngle: thisSegmentWingAngles.left,
-      prevSegmentRightWingAngle: thisSegmentWingAngles.right,
+      prevPointX: thisPoint.x,
+      prevPointY: thisPoint.y,
+      segmentEndingAtPrevPointLeftWingAngle: segmentEndingAtPrevPointWingAngle.left,
+      segmentEndingAtPrevPointRightWingAngle: segmentEndingAtPrevPointWingAngle.right,
       prevPointLeftWingAngle: thisPointWingAngles.left,
       prevPointRightWingAngle: thisPointWingAngles.right
     }
   );
-  // traceWings(cantext, thisSegmentEndpoint, thisPointWingtipPos);
+  // traceWings(cantext, thisPoint, thisPointWingtipPos);
   fillWingBanners(
     cantext,
-    thisSegmentStartPoint,
-    thisSegmentEndpoint,
+    prevPoint,
+    thisPoint,
     thisPointWingtipPos,
     prevPointWingtipPos
   );
 };
 
-const pointerEndStroke = (evt) => {
+const endStroke = (evt) => {
   Object.assign(brushState, BRUSH_STATE_DEFAULTS);
-  const coords = coordsInView(evt.clientX, evt.clientY);
+  const coords = coordsWithinPainting(evt.clientX, evt.clientY);
   blot(cantext, coords.x, coords.y, settings.brushtipSize);
 };
 
-window.onload = () => {
-  $('body').addEventListener('pointermove', handlePointerMove, true);
+const updateBrushtipSize = () => {
   settings.brushtipSize = Number($('#brushtipSize').value);
-  $('#brushtipSize').addEventListener('change', (evt) => {
-    settings.brushtipSize = Number($('#brushtipSize').value);
-  }, false);
-  initializeView();
-  $('#view').addEventListener('pointerdown', initStroke, true);
-  $('body').addEventListener('pointerup', pointerEndStroke, true);
-  $('body').addEventListener('pointercancel', pointerEndStroke, true);
+};
+
+window.onload = () => {
+  initializePainting();
+  updateBrushtipSize(); // for cached input values
+  $('#brushtipSize').addEventListener('change', updateBrushtipSize, false);
+  $('#painting').addEventListener('pointerdown', initStroke, true);
+  $('body').addEventListener('pointermove', handlePointerMove, true);
+  $('body').addEventListener('pointerup', endStroke, true);
+  $('body').addEventListener('pointercancel', endStroke, true);
 };

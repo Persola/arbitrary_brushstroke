@@ -5,8 +5,8 @@ export default {
   strokeFirstPointY: NaN,
   prevPointX: NaN,
   prevPointY: NaN,
-  prevSegmentRightWingAngle: NaN,
-  prevSegmentLeftWingAngle: NaN,
+  segmentEndingAtPrevPointRightWingAngle: NaN,
+  segmentEndingAtPrevPointLeftWingAngle: NaN,
   prevPointRightWingAngle: NaN, // derived from segment angles
   prevPointLeftWingAngle: NaN, // derived from segment angles
 };
