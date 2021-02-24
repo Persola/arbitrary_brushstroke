@@ -18,24 +18,35 @@ import fillCheckerboard from './js/render/fillCheckerboard'
 
 import BRUSH_STATE_DEFAULTS from './js/state/brushStateDefaults'
 
-const PAINTING_WIDTH = 600;
-const PAINTING_HEIGHT = 600;
+const PAINTING_WIDTH = 300;
+const PAINTING_HEIGHT = 300;
 
 const brushState = Object.assign({}, BRUSH_STATE_DEFAULTS);
 
-let cantext = null;
+const cxt = {
+  painting: null,
+  strokeLayer: null
+};
 
-const initializePainting = () => {
-  $('#painting').width = PAINTING_WIDTH;
-  $('#painting').height = PAINTING_HEIGHT;
-  cantext = $('#painting').getContext('2d', {
+const initializeCanvas = (elId) => {
+  $(`#${elId}`).width = PAINTING_WIDTH;
+  $(`#${elId}`).height = PAINTING_HEIGHT;
+  cxt[elId] = $(`#${elId}`).getContext('2d', {
     alpha: true,
     desynchronized: true, // guessing
     willReadFrequently: true // guessing
   });
-  cantext.imageSmoothingEnabled = false;
-  fillCheckerboard(cantext, PAINTING_WIDTH, PAINTING_HEIGHT);
-  cantext.fillStyle = 'green';
+  cxt[elId].imageSmoothingEnabled = false;
+};
+
+const initializePainting = () => {
+  initializeCanvas('painting');
+  initializeCanvas('strokeLayer');
+  fillCheckerboard(cxt.painting, PAINTING_WIDTH, PAINTING_HEIGHT);
+  cxt.strokeLayer.fillStyle = 'rgba(0, 0, 0, 0)';
+  cxt.strokeLayer.fillRect(0, 0, PAINTING_WIDTH, PAINTING_HEIGHT);
+  cxt.painting.fillStyle = 'rgba(255, 133, 0, 255)';
+  cxt.painting.fillRect(0, 0, PAINTING_WIDTH, PAINTING_HEIGHT);
 };
 
 const initStroke = (evt) => {
@@ -51,8 +62,8 @@ const initStroke = (evt) => {
       prevPointY: coords.y
     }
   )
-  blot(cantext, coords.x, coords.y, 2);
-  blot(cantext, coords.x, coords.y, settings.brushtipSize)
+  // blot(paintingCtx, coords.x, coords.y, 2);
+  // blot(paintingCtx, coords.x, coords.y, settings.brushtipSize)
 };
 
 const handlePointerMove = (evt) => {
@@ -66,13 +77,63 @@ const handlePointerMove = (evt) => {
       /* With the first point being set during stroke initialization, at this
          point strokePointCount should be 2 at minimum, so there should exist
          a segment before this point, so we can render it without a check. */
-      renderSegment(thisPointCoords);
-      blot(cantext, thisPointCoords.x, thisPointCoords.y, 2);
+      // renderSegment(thisPointCoords);
+      mapIntoStrokeLayer(thisPointCoords);
+      // blot(paintingCtx, thisPointCoords.x, thisPointCoords.y, 2);
     }
   } else {
     $('body').style.cursor = 'crosshair';
     $('#pointerPositionReadout').innerHTML = null;
   }
+};
+
+const mapIntoStrokeLayer = (thisPointCoords) => {
+  const width = (5 * 2) + 1;
+  const height = (5 * 2) + 1;
+  const imDat = cxt.painting.getImageData(
+    thisPointCoords.x - 5,
+    thisPointCoords.y - 5,
+    width,
+    height
+  );
+  
+  const totalPixels = width * height;
+
+  let mappedRawData = [];
+  for (let pixelInd = 0; pixelInd < totalPixels; pixelInd++) {
+    let originalPixel = imDat.data.slice(
+      pixelInd * 4,
+      (pixelInd + 1) * 4
+    );
+    if (originalPixel[1] < 200) {
+      console.log('sdf');
+    }
+    mappedRawData.push(...pixelMap(originalPixel));
+  }
+
+  const imdat = new ImageData(
+    new Uint8ClampedArray(mappedRawData),
+    width,
+    height
+  );
+  createImageBitmap(imdat).then((imageBitmap) => { // premultiply here?
+    cxt.strokeLayer.drawImage(
+      imageBitmap,
+      thisPointCoords.x - 5,
+      thisPointCoords.y - 5
+    );
+  }).catch((error) => {
+    console.log(error);
+  });;
+};
+
+const pixelMap = (originalPixel) => {
+  return [
+    originalPixel[1],
+    originalPixel[2],
+    originalPixel[0],
+    255
+  ];
 };
 
 const renderSegment = (thisPoint) => {
@@ -139,20 +200,27 @@ const renderSegment = (thisPoint) => {
       prevPointRightWingAngle: thisPointWingAngles.right
     }
   );
-  // traceWings(cantext, thisPoint, thisPointWingtipPos);
-  fillWingBanners(
-    cantext,
-    prevPoint,
-    thisPoint,
-    thisPointWingtipPos,
-    prevPointWingtipPos
-  );
+  // traceWings(paintingCtx, thisPoint, thisPointWingtipPos);
+  // fillWingBanners(
+  //   paintingCtx,
+  //   prevPoint,
+  //   thisPoint,
+  //   thisPointWingtipPos,
+  //   prevPointWingtipPos
+  // );
 };
 
 const endStroke = (evt) => {
   Object.assign(brushState, BRUSH_STATE_DEFAULTS);
   const coords = coordsWithinPainting(evt.clientX, evt.clientY);
-  blot(cantext, coords.x, coords.y, settings.brushtipSize);
+  // blot(paintingCtx, coords.x, coords.y, settings.brushtipSize);
+  commitStroke();
+};
+
+const commitStroke = () => {
+  cxt.painting.drawImage($('#strokeLayer'), 0, 0);
+  cxt.strokeLayer.fillStyle = 'rgba(0, 0, 0, 0)';
+  cxt.strokeLayer.fillRect(0, 0, PAINTING_WIDTH, PAINTING_HEIGHT);
 };
 
 const updateBrushtipSize = () => {
@@ -163,7 +231,7 @@ window.onload = () => {
   initializePainting();
   updateBrushtipSize(); // for cached input values
   $('#brushtipSize').addEventListener('change', updateBrushtipSize, false);
-  $('#painting').addEventListener('pointerdown', initStroke, true);
+  $('#strokeLayer').addEventListener('pointerdown', initStroke, true);
   $('body').addEventListener('pointermove', handlePointerMove, true);
   $('body').addEventListener('pointerup', endStroke, true);
   $('body').addEventListener('pointercancel', endStroke, true);

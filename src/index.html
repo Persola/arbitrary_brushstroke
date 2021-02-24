@@ -4,8 +4,6 @@
     <meta charset="utf-8">
   </head>
   <body>
-    <div id="pointerPositionReadout"></div>
-    <canvas id="painting"></canvas>
     <div id="controls">
       <label for="brushtipSize">Brushtip Size</label>
       <input
@@ -17,5 +15,10 @@
         value="10"
       >
     </div>
+    <div id="paintingWrapper">
+      <canvas id="painting" class="paintingLayer"></canvas>
+      <canvas id="strokeLayer" class="paintingLayer"></canvas>
+    </div>
+    <div id="pointerPositionReadout"></div>
   </body>
 </html>
