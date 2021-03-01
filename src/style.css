@@ -1,7 +1,7 @@
 body {
   font-family: Courier New, Courier, monospace;
   background-color: #666;
-  cursor: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='100'%20height='100'%3E%3Ccircle%20cx='50'%20cy='50'%20r='50'%20fill='red'/%3E%3C/svg%3E"), crosshair;
+  cursor: crosshair;
 }
 
 #paintingWrapper {
@@ -15,7 +15,7 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  margin: 0.5px; /* part of canvas half pixel off bug fix */
+  /* margin: 0.5px; */ /* part of canvas half pixel off bug fix */
   image-rendering: -moz-crisp-edges;
   image-rendering: -webkit-crisp-edges;
   image-rendering: pixelated;
@@ -34,6 +34,7 @@ body {
   position: fixed;
   bottom: 0;
   left: 0;
+  z-index: 1;
   background-color: #333;
   color: #fff;
 }
