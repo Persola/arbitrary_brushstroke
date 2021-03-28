@@ -4,21 +4,23 @@
     <meta charset="utf-8">
   </head>
   <body>
-    <div id="controls">
-      <label for="brushtipSize">Brushtip Size</label>
-      <input
-        type="number"
-        id="brushtipSize"
-        name="brushtipSize"
-        min="1"
-        max="63"
-        value="10"
-      >
+    <div class="arbrushApp">
+      <div id="controls">
+        <label for="brushtipSize">Brushtip Size</label>
+        <input
+          type="number"
+          id="brushtipSize"
+          name="brushtipSize"
+          min="1"
+          max="63"
+          value="10"
+        >
+      </div>
+      <div id="paintingWrapper">
+        <canvas id="painting" class="paintingLayer"></canvas>
+        <canvas id="strokeLayer" class="paintingLayer"></canvas>
+      </div>
+      <div id="pointerPositionReadout"></div>
     </div>
-    <div id="paintingWrapper">
-      <canvas id="painting" class="paintingLayer"></canvas>
-      <canvas id="strokeLayer" class="paintingLayer"></canvas>
-    </div>
-    <div id="pointerPositionReadout"></div>
   </body>
 </html>
