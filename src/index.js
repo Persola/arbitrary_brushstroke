@@ -3,7 +3,7 @@ import './style.css';
 import $ from './js/utility/querySelector';
 import coordsWithinPainting from './js/utility/coordsWithinPainting'
 import mouseInPainting from './js/utility/mouseInPainting'
-import settings from './js/state/settings'
+import settings from './js/state/settingsDefaults'
 
 import radiansArithmeticMean from './js/trig/radiansArithmeticMean'
 
@@ -15,8 +15,8 @@ import mapSegmentRectIntoStrokeLayer from './js/render/mapSegmentRectIntoStrokeL
 
 import BRUSH_STATE_DEFAULTS from './js/state/brushStateDefaults'
 
-const PAINTING_WIDTH = 400;
-const PAINTING_HEIGHT = 400;
+const PAINTING_WIDTH = 600;
+const PAINTING_HEIGHT = 600;
 
 const brushState = Object.assign({}, BRUSH_STATE_DEFAULTS);
 
@@ -128,6 +128,9 @@ window.onload = () => {
   initializePainting();
   updateBrushtipSize(); // for cached input values
   $('#brushtipSize').addEventListener('change', updateBrushtipSize, false);
+  $('#renderStrokeSkeleton').addEventListener('change', () => {
+    settings.renderStrokeSkeleton = !settings.renderStrokeSkeleton;
+  }, false);
   $('body').addEventListener('pointerdown', initStroke, true);
   $('body').addEventListener('pointermove', handlePointerMove, true);
   $('body').addEventListener('pointerup', endStroke, true);

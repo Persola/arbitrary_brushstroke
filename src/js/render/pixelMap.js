@@ -3,6 +3,6 @@ export default (originalPixel) => {
     originalPixel[1],
     originalPixel[2],
     originalPixel[0],
-    30
+    190
   ];
 };
